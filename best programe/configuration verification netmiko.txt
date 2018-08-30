@@ -1,0 +1,28 @@
+# import the modules you want to call        
+import netmiko, getpass
+
+# grab some info from the user
+ip = raw_input('Device IP: ')
+un = raw_input('Username: ')
+pw = getpass.getpass()
+
+# define your device
+cisco_2960x = {
+    'device_type': 'cisco_ios',
+    'ip': ip,
+    'username': un,
+    'password': pw,
+}
+
+# connect to the device w/ netmiko
+net_connect = netmiko.ConnectHandler(**cisco_2960x)
+
+# get the prompt as a string
+prompt = net_connect.find_prompt()
+
+# check to see if you're on the correct device, run a command, and print the output from the cmd
+if 'sw.stack.2960X' in prompt:
+    output = net_connect.send_command('show switch')
+    print output
+else:
+    print 'Wrong device.'
