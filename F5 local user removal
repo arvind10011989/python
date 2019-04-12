@@ -1,0 +1,56 @@
+import paramiko
+import time
+import getpass
+import sys
+import subprocess
+from subprocess import Popen, PIPE
+import os
+
+ipaddress = open('inventory')
+username = raw_input("Enter your ssh username: ")
+password = getpass.getpass()
+
+for ip in ipaddress:
+
+  ssh_client = paramiko.SSHClient()
+  ssh_client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+  ssh_client.connect(ip,username=username,password=password)
+
+  print "Successful connection", ipaddress
+  
+  remote_connection = ssh_client.invoke_shell()
+  remote_connection.send("tmsh\n")
+  remote_connection.send("list auth user | grep auth\n")
+  
+  time.sleep(1)
+  output = remote_connection.recv(65535)
+  saveoutput = open("f5output", "w")
+  saveoutput.write(output)
+  saveoutput.write("\n")
+  time.sleep(1)
+  saveoutput.close()
+  
+  f = open("localuser.txt", "w")
+  p = Popen(["grep -E 'auth user' f5output"], shell=True, stdout=PIPE, stderr=PIPE)
+  p1 = Popen (["grep -E -v '(list|admin)'"], shell=True, stdin=p.stdout, stdout=PIPE, stderr=PIPE)
+  p2 = Popen (["cut -d ' ' -f3"], shell=True, stdin=p1.stdout, stdout=f, stderr=PIPE)
+  f.close()
+  p3 = Popen (["cp localuser.txt cplocaluser.txt"], shell=True, stderr=PIPE, stdout=PIPE)
+  time.sleep(1)
+  time.sleep(1)
+  useraccounts = open("cplocaluser.txt")
+  for account in useraccounts:
+                             print "deleting useraccount  " + str(account)
+                             remote_connection.send("delete auth user " + str(account) +  "\n")
+                time.sleep(1)
+  useraccounts.close()
+  remote_connection.send("quit\n")
+  remote_connection.send("exit\n")
+  print output
+  ssh_client.close
+  time.sleep(1)
+  time.sleep(1)
+os.remove("f5output")
+os.remove("localuser.txt")
+os.remove("cplocaluser.txt")
+ipaddress.close()
